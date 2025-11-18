@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ReVivid: Renew Your Memories</title>
+<style>
+  :root{
+    --bg:#0f1112;
+    --panel:#151719;
+    --muted:#a7aab0;
+    --text:#e9eef2;
+    --accent:#00AEEF;
+    --danger:#ff6b6b;
+    --glass: rgba(255,255,255,0.03);
+    --radius:12px;
+    --shadow: 0 6px 22px rgba(0,0,0,0.6);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#0b0c0d);color:var(--text);-webkit-font-smoothing:antialiased}
+  .app{display:grid;grid-template-columns: 330px 1fr;gap:24px;padding:28px;min-height:100vh;box-sizing:border-box;}
+  .sidebar{background:var(--panel);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;}
+  .brand{text-align:center;margin-bottom:6px;}
+  .brand h1{font-size:18px;margin:0;color:var(--text)}
+  .brand p{margin:6px 0 0;color:var(--muted);font-size:13px}
+  .tabs{display:flex;gap:8px;margin-top:6px}
+  .tab{flex:1;padding:10px;border-radius:10px;text-align:center;cursor:pointer;font-size:14px;color:var(--muted);background:transparent;border:1px solid transparent}
+  .tab.active{background:linear-gradient(90deg, rgba(0,174,239,0.06), rgba(0,174,239,0.02));color:var(--text);border-color:rgba(0,174,239,0.12)}
+  .controls{overflow:auto;padding-right:6px}
+  .section-title{font-weight:700;margin:10px 0 8px;color:var(--text);font-size:13px}
+  .row{display:flex;align-items:center;gap:8px;margin:8px 0}
+  label{font-size:13px;color:var(--muted)}
+  .checkbox{display:flex;gap:8px;align-items:center;cursor:pointer}
+  .checkbox input{width:16px;height:16px}
+  .btn{display:inline-flex;align-items:center;gap:8px;justify-content:center;padding:10px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:600;background:var(--accent);color:#001217;box-shadow:0 6px 20px rgba(0,174,239,0.12);}
+  .btn.secondary{background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.04)}
+  .small{font-size:12px;color:var(--muted)}
+  .accordion{background:var(--glass);padding:10px;border-radius:8px;margin:8px 0}
+  .accordion .acc-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+  .acc-body{margin-top:8px;display:none;gap:8px}
+  .acc-body.open{display:flex;flex-direction:column}
+  .slider{width:100%}
+  input[type="range"]{width:100%}
+  .stage{padding:24px;border-radius:var(--radius);background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:var(--shadow);min-height:80vh;display:flex;flex-direction:column;gap:18px;}
+  .upload-zone{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:36px;border-radius:12px;border:2px dashed rgba(255,255,255,0.04);background:rgba(255,255,255,0.01);gap:12px;cursor:pointer;transition:all .18s ease;}
+  .upload-zone.hover{border-color:var(--accent);box-shadow:0 8px 30px rgba(0,174,239,0.06)}
+  .upload-tone{color:var(--muted);font-size:14px}
+  .tips{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;color:var(--muted);font-size:13px}
+  .comparison-wrap{position:relative;border-radius:10px;overflow:hidden;height:640px;background:#0b0c0d;border:1px solid rgba(255,255,255,0.02)}
+  .img-layer{position:absolute;inset:0;background-size:contain;background-repeat:no-repeat;background-position:center}
+  .img-before{z-index:1}
+  .img-after{z-index:2;overflow:hidden}
+  .divider{position:absolute;top:0;bottom:0;width:4px;background:linear-gradient(90deg, rgba(0,174,239,0.9), rgba(255,255,255,0.0));left:50%;transform:translateX(-2px);z-index:3;cursor:ew-resize;display:flex;align-items:center;justify-content:center;}
+  .divider .handle{width:34px;height:34px;border-radius:20px;background:var(--panel);border:2px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center}
+  .corner-label{position:absolute;top:10px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.3);color:var(--muted);font-weight:700;font-size:12px}
+  .label-left{left:10px}
+  .label-right{right:10px}
+  .controls-footer{display:flex;gap:12px;align-items:center}
+  .download-btn{padding:12px 16px;border-radius:10px;background:var(--accent);color:#001217;border:none;cursor:pointer;font-weight:700}
+  .download-btn:disabled{opacity:0.45;cursor:not-allowed}
+  .spinner-overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6));z-index:999}
+  .spinner-overlay.show{display:flex}
+  .spinner{width:64px;height:64px;border-radius:50%;border:6px solid rgba(255,255,255,0.06);border-top-color:var(--accent);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (max-width:960px){.app{grid-template-columns:1fr; padding:18px}.sidebar{order:2}.stage{order:1}.comparison-wrap{height:480px}}
+</style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="ReVivid">
+    <aside class="sidebar" aria-label="Controls">
+      <div class="brand">
+        <h1>ReVivid</h1>
+        <p>Renew Your Memories — Photo Restoration & Enhancement</p>
+      </div>
+      <div class="tabs" role="tablist">
+        <div class="tab active" data-tab="restore" role="tab" aria-selected="true">🛠️ Restoration</div>
+        <div class="tab" data-tab="enhance" role="tab" aria-selected="false">✨ Enhancement</div>
+      </div>
+      <div class="controls" id="controlsPanel" tabindex="0">
+        <div class="tab-panel" id="restorePanel" data-panel>
+          <div class="section-title">Auto Restore</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn" id="btnAutoRestore">Run Auto Restore</button>
+            <button class="btn secondary" id="btnAutoRestoreThenEnhance">Restore → Enhance</button>
+          </div>
+          <div style="margin-top:8px">
+            <label class="small">Auto strength</label>
+            <input id="autoStrength" type="range" min="0.5" max="2" step="0.1" value="1.0" class="slider"/>
+          </div>
+          <div class="section-title">Manual restoration</div>
+          <div class="accordion">
+            <div class="acc-head"><div class="checkbox"><input type="checkbox" id="chkDenoise"> <label for="chkDenoise">Denoise</label></div><div class="small">Options</div></div>
+            <div class="acc-body" id="denoiseBody">
+              <label class="small">Method</label>
+              <select id="denoiseMethod" style="padding:8px;border-radius:8px;background:transparent;color:var(--text);border:1px solid rgba(255,255,255,0.04)">
+                <option>NLM (Non-Local Means)</option><option>Median</option><option>Bilateral</option>
+              </select>
+              <div id="nlmControls" style="margin-top:8px">
+                <label class="small">NLM: strength (h)</label>
+                <input id="nlmH" type="range" min="1" max="30" step="0.5" value="10" class="slider"/>
+              </div>
+              <div id="medianControls" style="margin-top:8px;display:none">
+                <label class="small">Median kernel size</label>
+                <input id="medianK" type="range" min="3" max="11" step="2" value="3" class="slider"/>
+              </div>
+            </div>
+          </div>
+          <div class="accordion">
+            <div class="acc-head"><div class="checkbox"><input type="checkbox" id="chkDeblurRL"> <label for="chkDeblurRL">Deblur (Richardson-Lucy)</label></div><div class="small">Iterations / PSF</div></div>
+            <div class="acc-body" id="deblurRLBody">
+              <label class="small">RL iterations</label><input id="rlIter" type="range" min="5" max="60" step="1" value="20" class="slider"/>
+              <label class="small">PSF size (odd)</label><input id="psfSize" type="range" min="3" max="31" step="2" value="9" class="slider"/>
+              <label class="small">PSF sigma</label><input id="psfSigma" type="range" min="0.5" max="5" step="0.1" value="2.0" class="slider"/>
+            </div>
+          </div>
+          <div class="accordion">
+            <div class="acc-head"><div class="checkbox"><input type="checkbox" id="chkDeblurW"> <label for="chkDeblurW">Deblur (Wiener)</label></div><div class="small">Balance</div></div>
+            <div class="acc-body" id="deblurWBody">
+              <label class="small">Wiener balance</label><input id="wienerB" type="range" min="0.001" max="0.1" step="0.001" value="0.01" class="slider"/>
+            </div>
+          </div>
+          <div class="accordion">
+            <div class="acc-head"><div class="checkbox"><input type="checkbox" id="chkInpaint"> <label for="chkInpaint">Remove dust / specks (inpaint)</label></div><div class="small">Area filter</div></div>
+            <div class="acc-body" id="inpaintBody">
+              <label class="small">Min area</label><input id="minArea" type="range" min="1" max="50" step="1" value="5" class="slider"/>
+              <label class="small">Max area</label><input id="maxArea" type="range" min="50" max="400" step="10" value="200" class="slider"/>
+            </div>
+          </div>
+          <div style="height:14px"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn secondary" id="btnRunManualRestore">Run Manual Restore</button>
+            <div style="flex:1"></div>
+          </div>
+        </div>
+        <div class="tab-panel" id="enhancePanel" data-panel style="display:none">
+          <div class="section-title">Enhancement</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <button class="btn" id="btnRunEnhance">Run Enhancement</button>
+            <button class="btn secondary" id="btnAutoEnhance">Auto Enhance</button>
+          </div>
+          <div class="checkbox"><input type="checkbox" id="chkWB" checked> <label for="chkWB">White Balance (Gray-World)</label></div>
+          <div style="margin-top:10px" class="checkbox"><input type="checkbox" id="chkCLAHE" checked> <label for="chkCLAHE">CLAHE (Local Contrast)</label></div>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <div style="flex:1"><label class="small">Clip limit</label><input id="claheClip" type="range" min="1" max="7" step="0.1" value="2" class="slider"/></div>
+            <div style="width:86px"><label class="small">Tile grid</label><input id="claheTile" type="range" min="4" max="16" step="1" value="8" class="slider"/></div>
+          </div>
+          <div style="margin-top:10px" class="checkbox"><input type="checkbox" id="chkBC"> <label for="chkBC">Brightness / Contrast</label></div>
+          <div id="bcControls" style="display:none;margin-top:6px">
+            <label class="small">Contrast (alpha)</label><input id="bcAlpha" type="range" min="0.5" max="3" step="0.1" value="1.2" class="slider"/>
+            <label class="small">Brightness (beta)</label><input id="bcBeta" type="range" min="-100" max="100" step="1" value="10" class="slider"/>
+          </div>
+          <div style="margin-top:10px" class="checkbox"><input type="checkbox" id="chkGamma"> <label for="chkGamma">Gamma Correction</label></div>
+          <div id="gammaControls" style="display:none;margin-top:6px"><label class="small">Gamma</label><input id="gammaVal" type="range" min="0.3" max="3.0" step="0.05" value="1.0" class="slider"/></div>
+          <div style="margin-top:10px" class="checkbox"><input type="checkbox" id="chkSharp" checked> <label for="chkSharp">Sharpen (Unsharp mask)</label></div>
+          <div id="sharpenControls" style="margin-top:6px"><label class="small">Amount</label><input id="sharpAmount" type="range" min="0" max="3" step="0.1" value="1.0" class="slider"/><label class="small">Radius</label><input id="sharpRadius" type="range" min="1" max="5" step="1" value="1" class="slider"/></div>
+          <div style="margin-top:10px" class="checkbox"><input type="checkbox" id="chkSat"> <label for="chkSat">Saturation boost</label></div>
+          <div id="satControls" style="display:none;margin-top:6px"><label class="small">Saturation scale</label><input id="satScale" type="range" min="0" max="2.5" step="0.05" value="1.15" class="slider"/><label class="small">Value scale (HSV)</label><input id="valScale" type="range" min="0.5" max="1.5" step="0.05" value="1.0" class="slider"/></div>
+          <div style="margin-top:10px" class="checkbox"><input type="checkbox" id="chkAutoContrast"> <label for="chkAutoContrast">Auto-contrast (percentile)</label></div>
+          <div id="autoContrastControls" style="display:none;margin-top:6px"><label class="small">Low percentile</label><input id="lowPct" type="range" min="0" max="10" step="0.5" value="1.0" class="slider"/><label class="small">High percentile</label><input id="highPct" type="range" min="90" max="100" step="0.5" value="99.0" class="slider"/></div>
+        </div>
+      </div>
+    </aside>
+    <main class="stage" aria-live="polite">
+      <div id="homeView">
+        <div style="display:flex;gap:20px;align-items:center">
+          <div style="flex:1">
+            <div id="dropzone" class="upload-zone" tabindex="0" role="button" aria-label="Upload area">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M12 3v8" stroke="#a7aab0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 16v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1" stroke="#a7aab0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div class="upload-tone">Drag & Drop Image Here<br><small class="small">or click to browse</small></div>
+            </div>
+            <input type="file" id="fileInput" accept="image/png,image/jpeg" style="display:none" />
+            <div style="margin-top:12px" class="tips">
+              <strong>Quick Tips</strong>
+              <ul style="margin:8px 0 0;color:var(--muted);font-size:13px;padding-left:16px">
+                <li>Restoration first for damaged/blurred images.</li>
+                <li>Use Auto mode for quick results.</li>
+                <li>Supports PNG, JPG, JPEG formats.</li>
+              </ul>
+            </div>
+          </div>
+          <div style="width:320px">
+            <div style="background:var(--panel);padding:12px;border-radius:12px">
+              <h3 style="margin:0 0 8px;color:var(--text)">Recent</h3>
+              <p style="margin:0;color:var(--muted);font-size:13px">Your uploaded images and last result will appear here after processing.</p>
+              <div id="statusBox" style="margin-top:10px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="procView" style="display:none;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;gap:12px;align-items:center">
+            <h2 style="margin:0">Original vs Processed</h2>
+            <div style="color:var(--muted);font-size:13px">Drag the divider to compare</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="download-btn" id="downloadBtn" disabled>Download Result</button>
+          </div>
+        </div>
+        <div class="comparison-wrap" id="comparison">
+          <div class="img-layer img-before" id="beforeLayer" style="background-image:url('');"></div>
+          <div class="img-layer img-after" id="afterLayer" style="background-image:url(''); width:50%;"></div>
+          <div class="corner-label label-left">Original</div>
+          <div class="corner-label label-right">Processed</div>
+          <div class="divider" id="divider" style="left:50%"><div class="handle">☰</div></div>
+          <div class="spinner-overlay" id="spinner"><div style="text-align:center"><div class="spinner"></div><div style="margin-top:12px;color:var(--text)">Processing...</div></div></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
+          <div style="color:var(--muted)">Processed image updates after each operation. Use Restore → Enhance to chain operations.</div>
+          <div style="display:flex;gap:8px"><button class="btn secondary" id="btnReset">Reset</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+<script>
+(() => {
+  // Change this if your API runs on a different host/port
+  const API_BASE = "http://127.0.0.1:8000";
+  const mockMode = false; // set true to bypass backend and display original as processed
+
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('[data-panel]');
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const homeView = document.getElementById('homeView');
+  const procView = document.getElementById('procView');
+  const beforeLayer = document.getElementById('beforeLayer');
+  const afterLayer = document.getElementById('afterLayer');
+  const divider = document.getElementById('divider');
+  const spinner = document.getElementById('spinner');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const statusBox = document.getElementById('statusBox');
+
+  let uploadedFile = null;
+  let processedBlobUrl = null; // URL of latest processed blob
+
+  function setProcessing(on){ spinner.classList.toggle('show', !!on); }
+  function setStatus(msg){ statusBox.innerHTML = `<div style="padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);color:var(--muted)">${msg}</div>`; }
+
+  tabs.forEach(t => { t.addEventListener('click', () => { tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active'); const which = t.dataset.tab; panels.forEach(p => p.style.display = p.id.startsWith(which) ? '' : 'none'); }); });
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e)=>{ e.preventDefault(); dropzone.classList.add('hover'); });
+  dropzone.addEventListener('dragleave', ()=> dropzone.classList.remove('hover'));
+  dropzone.addEventListener('drop', (e)=> { e.preventDefault(); dropzone.classList.remove('hover'); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) handleFile(f); });
+  fileInput.addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; if (f) handleFile(f); });
+
+  function handleFile(file){
+    const okTypes = ['image/png','image/jpeg','image/jpg'];
+    if (!okTypes.includes(file.type)){ alert('Unsupported file type. Use PNG/JPG/JPEG.'); return; }
+    uploadedFile = file;
+    setStatus(`<strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB)`);
+    showProcessingView();
+    setBeforeImage(URL.createObjectURL(file));
+    setAfterImage('');
+    processedBlobUrl = null;
+    downloadBtn.disabled = true;
+    if (mockMode){ setTimeout(()=> { setAfterImage(URL.createObjectURL(file)); processedBlobUrl = URL.createObjectURL(file); downloadBtn.disabled = false; setStatus('Mock processing complete'); }, 400); }
+  }
+
+  let dragging = false;
+  divider.addEventListener('pointerdown', (e)=> { dragging = true; divider.setPointerCapture(e.pointerId); });
+  window.addEventListener('pointerup', ()=> dragging = false);
+  window.addEventListener('pointermove', (e)=> { if (!dragging) return; const rect = divider.parentElement.getBoundingClientRect(); let x = e.clientX - rect.left; x = Math.max(0, Math.min(rect.width, x)); const pct = x / rect.width * 100; afterLayer.style.width = pct + '%'; divider.style.left = pct + '%'; });
+
+  function setBeforeImage(url){ beforeLayer.style.backgroundImage = url ? `url("${url}")` : ''; }
+  function setAfterImage(url){ afterLayer.style.backgroundImage = url ? `url("${url}")` : ''; }
+
+  function getRestoreParams(auto=false){
+    if (auto){
+      const strength = parseFloat(document.getElementById('autoStrength').value);
+      const denoise_h = 8.0 * strength;
+      const rl_iters = Math.round(15 * strength);
+      return {mode:'auto', steps:[{name:'denoise', params:{method:'Non-Local Means', h:denoise_h}},{name:'deblur_rl', params:{iterations:rl_iters, psf_size:9, psf_sigma:2.0}},{name:'inpaint_specks', params:{min_area:3, max_area:500}}]};
+    } else {
+      const steps = [];
+      if (document.getElementById('chkDenoise').checked){
+        const meth = document.getElementById('denoiseMethod').value;
+        if (meth.includes('NLM')) steps.push({name:'denoise', params:{method:'Non-Local Means', h:parseFloat(document.getElementById('nlmH').value)}});
+        else if (meth.includes('Median')) steps.push({name:'denoise', params:{method:'Median', ksize:parseInt(document.getElementById('medianK').value)}});
+        else steps.push({name:'denoise', params:{method:'Bilateral', diameter:9, sigma_color:75, sigma_space:75}});
+      }
+      if (document.getElementById('chkDeblurRL').checked) steps.push({name:'deblur_rl', params:{iterations:parseInt(document.getElementById('rlIter').value), psf_size:parseInt(document.getElementById('psfSize').value), psf_sigma:parseFloat(document.getElementById('psfSigma').value)}});
+      if (document.getElementById('chkDeblurW').checked) steps.push({name:'deblur_wiener', params:{balance:parseFloat(document.getElementById('wienerB').value)}});
+      if (document.getElementById('chkInpaint').checked) steps.push({name:'inpaint_specks', params:{min_area:parseInt(document.getElementById('minArea').value), max_area:parseInt(document.getElementById('maxArea').value)}});
+      return {mode:'manual', steps};
+    }
+  }
+
+  function getEnhanceParams(){ const steps = []; if (document.getElementById('chkWB').checked) steps.push({name:'white_balance', params:{}}); if (document.getElementById('chkBC').checked) steps.push({name:'brightness_contrast', params:{alpha:parseFloat(document.getElementById('bcAlpha').value), beta:parseInt(document.getElementById('bcBeta').value)}}); if (document.getElementById('chkGamma').checked) steps.push({name:'gamma', params:{gamma:parseFloat(document.getElementById('gammaVal').value)}}); if (document.getElementById('chkCLAHE').checked) steps.push({name:'clahe', params:{clip_limit:parseFloat(document.getElementById('claheClip').value), tile_grid:parseInt(document.getElementById('claheTile').value)}}); if (document.getElementById('chkAutoContrast').checked) steps.push({name:'auto_contrast', params:{low_pct:parseFloat(document.getElementById('lowPct').value), high_pct:parseFloat(document.getElementById('highPct').value)}}); if (document.getElementById('chkSharp').checked) steps.push({name:'sharpen', params:{amount:parseFloat(document.getElementById('sharpAmount').value), radius:parseInt(document.getElementById('sharpRadius').value)}}); if (document.getElementById('chkSat').checked) steps.push({name:'saturation', params:{scale:parseFloat(document.getElementById('satScale').value), value_scale:parseFloat(document.getElementById('valScale').value)}}); return {steps}; }
+
+  async function postProcess(url, file, params){
+    if (!file){ alert('Please upload an image first'); return null; }
+    setProcessing(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', file, file.name);
+      fd.append('params', JSON.stringify(params));
+      const res = await fetch(url, { method:'POST', body:fd });
+      if (!res.ok){ const txt = await res.text(); throw new Error('Server error: ' + (txt || res.statusText)); }
+      const blob = await res.blob();
+      return blob;
+    } catch (err){ alert('Processing failed: ' + err.message); console.error(err); return null; } finally { setProcessing(false); }
+  }
+
+  async function blobUrlToFile(url, filename){
+    // fetch the blob URL content (works for blob: and http(s):)
+    const r = await fetch(url);
+    const b = await r.blob();
+    return new File([b], filename || 'image.png', {type: b.type || 'image/png'});
+  }
+
+  document.getElementById('btnAutoRestore').addEventListener('click', async ()=>{
+    if (!uploadedFile){ alert('Upload an image first'); return; }
+    showProcessingView(); setStatus('Running Auto Restore...');
+    if (mockMode){ setAfterImage(URL.createObjectURL(uploadedFile)); processedBlobUrl = URL.createObjectURL(uploadedFile); downloadBtn.disabled = false; setStatus('Mock auto restore complete'); return; }
+    const params = getRestoreParams(true);
+    const blob = await postProcess(API_BASE + '/api/restore', uploadedFile, params);
+    if (blob){ const url = URL.createObjectURL(blob); setAfterImage(url); processedBlobUrl = url; downloadBtn.disabled = false; setStatus('Auto restore complete'); }
+  });
+
+  document.getElementById('btnRunManualRestore').addEventListener('click', async ()=>{
+    if (!uploadedFile){ alert('Upload an image first'); return; }
+    showProcessingView(); setStatus('Running Manual Restore...');
+    const params = getRestoreParams(false);
+    if (!params.steps || params.steps.length===0){ alert('No manual steps selected'); setStatus('No manual steps selected'); return; }
+    if (mockMode){ const url = URL.createObjectURL(uploadedFile); setAfterImage(url); processedBlobUrl = url; downloadBtn.disabled = false; setStatus('Mock manual restore complete'); return; }
+    const blob = await postProcess(API_BASE + '/api/restore', uploadedFile, params);
+    if (blob){ const url = URL.createObjectURL(blob); setAfterImage(url); processedBlobUrl = url; downloadBtn.disabled = false; setStatus('Manual restore complete'); }
+  });
+
+  document.getElementById('btnRunEnhance').addEventListener('click', async ()=>{
+    if (!uploadedFile && !processedBlobUrl){ alert('Upload or restore an image first'); return; }
+    showProcessingView(); setStatus('Running Enhancement...');
+    const params = getEnhanceParams();
+    let sourceFile = uploadedFile;
+    if (processedBlobUrl){
+      try { sourceFile = await blobUrlToFile(processedBlobUrl, 'base_for_enhance.png'); }
+      catch(err){ console.warn('Could not fetch processed blob; falling back to original', err); sourceFile = uploadedFile; }
+    }
+    if (mockMode){ const url = URL.createObjectURL(sourceFile); setAfterImage(url); processedBlobUrl = url; downloadBtn.disabled = false; setStatus('Mock enhancement complete'); return; }
+    const blob = await postProcess(API_BASE + '/api/enhance', sourceFile, params);
+    if (blob){ const url = URL.createObjectURL(blob); setAfterImage(url); processedBlobUrl = url; downloadBtn.disabled = false; setStatus('Enhancement complete'); }
+  });
+
+  document.getElementById('btnAutoRestoreThenEnhance').addEventListener('click', async ()=>{
+    if (!uploadedFile){ alert('Upload an image first'); return; }
+    showProcessingView(); setStatus('Running Restore → Enhance...');
+    const rparams = getRestoreParams(true);
+    const rblob = mockMode ? new Blob([await uploadedFile.arrayBuffer()], {type:uploadedFile.type}) : await postProcess(API_BASE + '/api/restore', uploadedFile, rparams);
+    if (!rblob){ setStatus('Restore failed'); return; }
+    const rfile = new File([rblob], 'restored.png', {type:rblob.type});
+    const eparams = getEnhanceParams();
+    const eblob = mockMode ? rblob : await postProcess(API_BASE + '/api/enhance', rfile, eparams);
+    if (eblob){ setAfterImage(URL.createObjectURL(eblob)); processedBlobUrl = URL.createObjectURL(eblob); downloadBtn.disabled = false; setStatus('Restore → Enhance complete'); }
+  });
+
+  document.getElementById('btnReset').addEventListener('click', ()=>{ uploadedFile = null; processedBlobUrl = null; setBeforeImage(''); setAfterImage(''); homeView.style.display = ''; procView.style.display='none'; setStatus('Reset. Upload a new image to continue.'); downloadBtn.disabled = true; });
+
+  downloadBtn.addEventListener('click', ()=>{ if (!processedBlobUrl) return; const a = document.createElement('a'); a.href = processedBlobUrl; a.download = 'reVivid_result.png'; document.body.appendChild(a); a.click(); a.remove(); });
+
+  function showProcessingView(){ homeView.style.display = 'none'; procView.style.display = 'flex'; }
+  document.querySelectorAll('.accordion .acc-head').forEach(head => { head.addEventListener('click', ()=> { const body = head.nextElementSibling; body.classList.toggle('open'); }); });
+  document.getElementById('chkDenoise').addEventListener('change', (e)=> { document.getElementById('denoiseBody').classList.toggle('open', e.target.checked); });
+  document.getElementById('denoiseMethod').addEventListener('change', (e)=>{ const v = e.target.value; document.getElementById('nlmControls').style.display = v.includes('NLM') ? '' : 'none'; document.getElementById('medianControls').style.display = v.includes('Median') ? '' : 'none'; });
+  document.getElementById('chkDeblurRL').addEventListener('change', (e)=> { document.getElementById('deblurRLBody').classList.toggle('open', e.target.checked); });
+  document.getElementById('chkDeblurW').addEventListener('change', (e)=> { document.getElementById('deblurWBody').classList.toggle('open', e.target.checked); });
+  document.getElementById('chkInpaint').addEventListener('change', (e)=> { document.getElementById('inpaintBody').classList.toggle('open', e.target.checked); });
+  document.getElementById('chkBC').addEventListener('change', (e)=> { document.getElementById('bcControls').style.display = e.target.checked ? '' : 'none'; });
+  document.getElementById('chkGamma').addEventListener('change', (e)=> { document.getElementById('gammaControls').style.display = e.target.checked ? '' : 'none'; });
+  document.getElementById('chkSharp').addEventListener('change', (e)=> { document.getElementById('sharpenControls').style.display = e.target.checked ? '' : 'none'; });
+  document.getElementById('chkSat').addEventListener('change', (e)=> { document.getElementById('satControls').style.display = e.target.checked ? '' : 'none'; });
+  document.getElementById('chkAutoContrast').addEventListener('change', (e)=> { document.getElementById('autoContrastControls').style.display = e.target.checked ? '' : 'none'; });
+
+  showProcessingView(); homeView.style.display = ''; procView.style.display = 'none'; setStatus('No result yet. Use the left panel to restore or enhance after upload.');
+
+})();</script>
+</body>
+</html>
